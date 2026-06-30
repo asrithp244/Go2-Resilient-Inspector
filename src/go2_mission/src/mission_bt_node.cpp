@@ -318,7 +318,7 @@ public:
 
     // ── Odometry subscriber ─────────────────────────────────────────────────
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      "/odom", sensor_qos,
+      "/odom/ground_truth", sensor_qos,
       [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         handle_odom(msg);
       });
@@ -346,7 +346,7 @@ public:
 
     RCLCPP_INFO(get_logger(),
       "mission_bt_node started. Ticking at %.1f Hz. "
-      "Listening on /odom, publishing /cmd_vel.", tick_rate);
+      "Listening on /odom/ground_truth, publishing /cmd_vel.", tick_rate);
   }
 
 private:
@@ -491,19 +491,4 @@ private:
 
   std::shared_ptr<RobotPose> pose_;
 
-  BT::Tree                             tree_;
-  std::unique_ptr<BT::Groot2Publisher> groot2_pub_;
-
-  bool   mission_complete_{false};
-  double degraded_confidence_{0.60};
-};
-
-// ── Entry point ───────────────────────────────────────────────────────────────
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<MissionBTNode>();
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
-}
+  BT::Tree                             
