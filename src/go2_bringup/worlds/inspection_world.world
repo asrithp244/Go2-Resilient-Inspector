@@ -61,7 +61,7 @@
     <!-- Obstacle 1: box near first leg (home -> station_1), south side -->
     <model name="obstacle_box_1">
       <static>1</static>
-      <pose>2.0 -1.2 0.5 0 0 0</pose>
+      <pose>2.0 -0.7 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><box><size>0.6 0.6 1.0</size></box></geometry>
@@ -81,7 +81,7 @@
     <!-- Obstacle 2: cylinder near station_1 -> station_2 leg, east side -->
     <model name="obstacle_cylinder_1">
       <static>1</static>
-      <pose>4.2 1.5 0.5 0 0 0</pose>
+      <pose>3.7 1.5 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><cylinder><radius>0.3</radius><length>1.0</length></cylinder></geometry>
@@ -101,7 +101,7 @@
     <!-- Obstacle 3: box near station_2 -> station_3 leg, north side -->
     <model name="obstacle_box_2">
       <static>1</static>
-      <pose>1.5 4.2 0.5 0 0 0</pose>
+      <pose>1.5 3.7 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><box><size>0.8 0.4 1.0</size></box></geometry>
@@ -121,7 +121,7 @@
     <!-- Obstacle 4: cylinder near station_3 -> station_4 leg, north side -->
     <model name="obstacle_cylinder_2">
       <static>1</static>
-      <pose>-1.5 4.3 0.5 0 0 0</pose>
+      <pose>-1.5 3.7 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><cylinder><radius>0.35</radius><length>1.0</length></cylinder></geometry>
@@ -141,7 +141,7 @@
     <!-- Obstacle 5: box near station_4 -> station_5 leg, west side -->
     <model name="obstacle_box_3">
       <static>1</static>
-      <pose>-4.2 1.5 0.5 0 0 0</pose>
+      <pose>-3.7 1.5 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><box><size>0.5 0.5 1.0</size></box></geometry>
