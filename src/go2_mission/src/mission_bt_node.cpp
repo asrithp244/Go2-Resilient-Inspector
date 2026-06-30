@@ -163,7 +163,11 @@ private:
   {
     go2_interfaces::msg::InspectionResult result;
     result.station_id = station_id_;
-    result.inspected_at = node_->now().to_msg();
+    {
+      auto _t = node_->now();
+      result.inspected_at.sec = static_cast<int32_t>(_t.nanoseconds() / 1000000000LL);
+      result.inspected_at.nanosec = static_cast<uint32_t>(_t.nanoseconds() % 1000000000LL);
+    }
     result.degraded_mode = g_degraded_mode.load();
     result.confidence = g_confidence_level.load();
 
