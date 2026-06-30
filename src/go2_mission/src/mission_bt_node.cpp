@@ -247,8 +247,13 @@ public:
         handle_fault(msg);
       });
 
-    // ── Build behavior tree ─────────────────────────────────────────────────
-    build_tree();
+    // ── Defer tree build until after constructor (shared_from_this() requires it) ──
+    init_timer_ = create_wall_timer(
+      std::chrono::milliseconds(1),
+      [this]() {
+        init_timer_->cancel();
+        build_tree();
+      });
 
     // ── Mission tick timer ─────────────────────────────────────────────────
     const double tick_rate = this->get_parameter("tick_rate_hz").as_double();
@@ -366,6 +371,7 @@ private:
   rclcpp::Publisher<go2_interfaces::msg::InspectionResult>::SharedPtr result_pub_;
   rclcpp::Subscription<go2_interfaces::msg::FaultEvent>::SharedPtr fault_sub_;
   rclcpp::TimerBase::SharedPtr tick_timer_;
+  rclcpp::TimerBase::SharedPtr init_timer_;
 
   BT::Tree tree_;
   std::unique_ptr<BT::Groot2Publisher> groot2_pub_;
