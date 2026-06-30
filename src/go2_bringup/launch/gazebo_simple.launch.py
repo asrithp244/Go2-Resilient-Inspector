@@ -7,10 +7,10 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.substitutions import Command, LaunchConfiguration
 
 def generate_launch_description():
-    gz_pkg = launch_ros.substitutions.FindPackageShare("champ_gazebo").find("champ_gazebo")
+    go2_bringup_pkg = launch_ros.substitutions.FindPackageShare("go2_bringup").find("go2_bringup")
     desc_pkg = launch_ros.substitutions.FindPackageShare("champ_description").find("champ_description")
-    
-    world = os.path.join(gz_pkg, "worlds/default.world")
+
+    world = os.path.join(go2_bringup_pkg, "worlds/inspection_world.world")
     urdf = os.path.join(desc_pkg, "urdf/champ.urdf.xacro")
 
     robot_description = {"robot_description": Command(["xacro ", urdf])}
