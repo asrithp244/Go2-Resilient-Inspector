@@ -3,17 +3,18 @@
 <package format="3">
   <name>go2_report</name>
   <version>0.1.0</version>
-  <description>Mission report generator. Aggregates InspectionResult and FaultEvent messages into JSON and Markdown reports at mission completion.</description>
+  <description>Mission report generator. Aggregates InspectionResult and FaultEvent messages into JSON and Markdown reports.</description>
   <maintainer email="apandrek@asu.edu">Asrith Pandreka</maintainer>
   <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>go2_interfaces</exec_depend>
 
-  <buildtool_depend>ament_python</buildtool_depend>
-
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
