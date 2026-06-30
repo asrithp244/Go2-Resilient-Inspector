@@ -1,0 +1,82 @@
+ekf_filter_node:
+  ros__parameters:
+    # ── Reference frames ──────────────────────────────────────────────────────
+    # All frames must match the Go2 URDF and match exactly one parent each.
+    # tf2 tree: map -> odom -> base_link -> (sensor frames)
+    world_frame: odom
+    odom_frame: odom
+    base_link_frame: base_link
+    map_frame: map
+
+    # ── Sensor fusion configuration ───────────────────────────────────────────
+    # Fuse wheel odometry (from HAL dead-reckoning) and IMU.
+    # Do NOT fuse GPS in this version — facility interior has no GNSS.
+    odom0: /go2/odom
+    odom0_config: [true,  true,  false,   # x, y, z
+                   false, false, true,    # roll, pitch, yaw
+                   true,  true,  false,   # vx, vy, vz
+                   false, false, true,    # vroll, vpitch, vyaw
+                   false, false, false]   # ax, ay, az
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 5
+    odom0_nodelay: false
+
+    imu0: /go2/imu
+    imu0_config: [false, false, false,    # x, y, z
+                  true,  true,  true,     # roll, pitch, yaw — use IMU orientation
+                  false, false, false,    # vx, vy, vz
+                  true,  true,  true,     # angular velocity
+                  true,  true,  false]    # linear acceleration (no z — gravity bias)
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
+    imu0_queue_size: 10
+    imu0_nodelay: true  # IMU is time-critical for EKF stability
+
+    # ── Process noise ─────────────────────────────────────────────────────────
+    # Diagonal of the process noise covariance Q.
+    # Higher values = trust sensor measurements more, trust model less.
+    # These are tuned for the Go2's typical walking gait on flat surfaces.
+    process_noise_covariance: [0.05, 0,    0,    0,    0,    0,    0,     0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0.05, 0,    0,    0,    0,    0,     0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0.06, 0,    0,    0,    0,     0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0.03, 0,    0,    0,     0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0.03, 0,    0,     0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0.06, 0,     0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0.025, 0,    0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0.025,0,    0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0.04, 0,    0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0,    0.01, 0,    0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0,    0,    0.01, 0,    0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0,    0,    0,    0.02, 0,    0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0,    0,    0,    0,    0.01, 0,    0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0,    0,    0,    0,    0,    0.01, 0,
+                               0,    0,    0,    0,    0,    0,    0,     0,    0,    0,    0,    0,    0,    0,    0.015]
+
+    # ── Initial estimate covariance ───────────────────────────────────────────
+    # Start with moderate uncertainty — EKF converges quickly from first IMU measurement.
+    initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    1e-9, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    1e-9, 0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    1e-9, 0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    1e-9, 0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    1e-9, 0,    0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    1e-9, 0,    0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    1e-9, 0,    0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    1e-9, 0,     0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    0,    1e-9,  0,     0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     1e-9,  0,     0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     1e-9,  0,    0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-9, 0,    0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-9, 0,
+                                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-9]
+
+    # ── Publish settings ──────────────────────────────────────────────────────
+    frequency: 30.0       # Hz — EKF output rate
+    sensor_timeout: 0.1   # seconds — declare sensor stale after this
+    two_d_mode: true      # Go2 operates on flat facility floor
+    print_diagnostics: true
+    debug: false
+    publish_tf: true
+    publish_acceleration: false

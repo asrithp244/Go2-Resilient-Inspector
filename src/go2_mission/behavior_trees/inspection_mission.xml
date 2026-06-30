@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!--
+  inspection_mission.xml
+  ======================
+  BehaviorTree.CPP v4 mission tree for the Go2 resilient inspection system.
+
+  This tree implements a 5-station waypoint patrol with implicit fault tolerance:
+  the NavigateToStation node checks the global g_degraded_mode flag on every tick
+  and automatically switches between Nav2 (normal) and dead-reckoning (degraded)
+  navigation without requiring a separate recovery branch.
+
+  Load this file in Groot2 for live visualization during the demo.
+  Pass via: --ros-args -p bt_xml_file:=<path>/inspection_mission.xml
+-->
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="InspectionMission">
+    <Sequence name="PatrolSequence">
+
+      <!-- Station 1 — nominal, healthy machine -->
+      <NavigateToStation name="NavTo_S1" station_id="station_1" x="5.0"  y="0.0"  yaw="0.0"/>
+      <InspectStation    name="Insp_S1"  station_id="station_1" x="5.0"  y="0.0"/>
+
+      <!-- Station 2 — SEEDED ANOMALY: high vibration + error code 0x03 -->
+      <NavigateToStation name="NavTo_S2" station_id="station_2" x="5.0"  y="5.0"  yaw="1.57"/>
+      <InspectStation    name="Insp_S2"  station_id="station_2" x="5.0"  y="5.0"/>
+
+      <!-- Station 3 — nominal -->
+      <NavigateToStation name="NavTo_S3" station_id="station_3" x="0.0"  y="5.0"  yaw="3.14"/>
+      <InspectStation    name="Insp_S3"  station_id="station_3" x="0.0"  y="5.0"/>
+
+      <!-- Station 4 — SEEDED ANOMALY: motor overtemp + visual warning light RED
+           NOTE: if lidar fault was injected before this point, this station
+           will be inspected under degraded mode (confidence=0.60). -->
+      <NavigateToStation name="NavTo_S4" station_id="station_4" x="-5.0" y="5.0"  yaw="3.14"/>
+      <InspectStation    name="Insp_S4"  station_id="station_4" x="-5.0" y="5.0"/>
+
+      <!-- Station 5 — nominal -->
+      <NavigateToStation name="NavTo_S5" station_id="station_5" x="-5.0" y="0.0"  yaw="4.71"/>
+      <InspectStation    name="Insp_S5"  station_id="station_5" x="-5.0" y="0.0"/>
+
+      <!-- Return to home base -->
+      <NavigateToStation name="NavTo_Home" station_id="home" x="0.0" y="0.0" yaw="0.0"/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>

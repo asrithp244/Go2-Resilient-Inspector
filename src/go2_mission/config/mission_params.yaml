@@ -1,0 +1,30 @@
+/**:
+  ros__parameters:
+    # ── Navigation confidence thresholds ────────────────────────────────────
+    # Confidence reported in InspectionResult when sensors are fully operational
+    normal_confidence: 0.95
+    # Confidence reported after a lidar fault — honest signal to the report consumer
+    degraded_confidence: 0.60
+
+    # ── BT tick rate ────────────────────────────────────────────────────────
+    # 10 Hz is sufficient for mission-level decision making.
+    # Do not exceed 50 Hz — the EKF and Nav2 operate at 10-50 Hz anyway.
+    tick_rate_hz: 10.0
+
+    # ── Navigation travel time simulation (seconds) ─────────────────────────
+    # These approximate real Go2 travel times across the ~10m facility.
+    # Set to 0.5 for fast CI testing.
+    normal_travel_time_sec: 3.0
+    degraded_travel_time_sec: 6.0
+
+    # ── Inspection dwell time ───────────────────────────────────────────────
+    # Time to wait at each station for perception + telemetry to complete
+    inspection_dwell_sec: 2.0
+
+    # ── Groot2 visualization ────────────────────────────────────────────────
+    enable_groot2: false
+    # groot2_port: 1667  # default port
+
+    # ── BT XML path ─────────────────────────────────────────────────────────
+    # Leave empty to use embedded XML. Override to load from file.
+    bt_xml_file: ""

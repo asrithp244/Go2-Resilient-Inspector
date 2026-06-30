@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>go2_localization</name>
+  <version>0.1.0</version>
+  <description>EKF localization configuration. Fuses /go2/odom and /go2/imu via robot_localization.</description>
+  <maintainer email="apandrek@asu.edu">Asrith Pandreka</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>robot_localization</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0",
+  "mission_name": "Meridian_Platform_Alpha",
+  "generated_at": "2025-01-15T14:37:22.841Z",
+  "mission_elapsed_sec": 312.4,
+  "summary": {
+    "total_stations": 5,
+    "anomaly_count": 2,
+    "degraded_mode_inspections": 2,
+    "fault_events": 1
+  },
+  "fault_events": [
+    {
+      "subsystem": "lidar",
+      "fault_type": "topic_silent",
+      "detected_at_sec": 1736952932,
+      "recovery_action": "switching_to_degraded_nav_dead_reckoning"
+    }
+  ],
+  "stations": [
+    {
+      "station_id": "station_1",
+      "inspected_at_sec": 1736952820,
+      "visual_anomaly": false,
+      "telemetry_anomaly": false,
+      "anomaly_description": "nominal",
+      "confidence": 0.95,
+      "degraded_mode": false
+    },
+    {
+      "station_id": "station_2",
+      "inspected_at_sec": 1736952858,
+      "visual_anomaly": false,
+      "telemetry_anomaly": true,
+      "anomaly_description": "high_vibration_level=0.87; error_code=0x03",
+      "confidence": 0.95,
+      "degraded_mode": false
+    },
+    {
+      "station_id": "station_3",
+      "inspected_at_sec": 1736952901,
+      "visual_anomaly": false,
+      "telemetry_anomaly": false,
+      "anomaly_description": "nominal",
+      "confidence": 0.95,
+      "degraded_mode": false
+    },
+    {
+      "station_id": "station_4",
+      "inspected_at_sec": 1736952953,
+      "visual_anomaly": true,
+      "telemetry_anomaly": true,
+      "anomaly_description": "motor_temp_c=94.2 (threshold=80); visual_warning_light=RED",
+      "confidence": 0.6,
+      "degraded_mode": true
+    },
+    {
+      "station_id": "station_5",
+      "inspected_at_sec": 1736952992,
+      "visual_anomaly": false,
+      "telemetry_anomaly": false,
+      "anomaly_description": "nominal",
+      "confidence": 0.6,
+      "degraded_mode": true
+    }
+  ]
+}
