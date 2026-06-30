@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 inspection_report_gen.py
 =========================
