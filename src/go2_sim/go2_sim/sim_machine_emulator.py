@@ -90,10 +90,10 @@ class SimMachineEmulator(Node):
             depth=5
         )
 
-        self._publishers = {}
+        self._station_pubs = {}
         for station_id in STATION_CONFIGS:
             topic = f"/{station_id}/can_telemetry"
-            self._publishers[station_id] = self.create_publisher(
+            self._station_pubs[station_id] = self.create_publisher(
                 CanFrame, topic, sensor_qos)
 
         self._timer = self.create_timer(1.0 / rate, self._publish_all)
@@ -142,7 +142,7 @@ class SimMachineEmulator(Node):
                 self._seq & 0xFF,
             ]
 
-            self._publishers[station_id].publish(msg)
+            self._station_pubs[station_id].publish(msg)
 
             if cfg["anomaly_seeded"]:
                 self.get_logger().debug(
