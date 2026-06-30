@@ -491,4 +491,19 @@ private:
 
   std::shared_ptr<RobotPose> pose_;
 
-  BT::Tree                             
+  BT::Tree                             tree_;
+  std::unique_ptr<BT::Groot2Publisher> groot2_pub_;
+
+  bool   mission_complete_{false};
+  double degraded_confidence_{0.60};
+};
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<MissionBTNode>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+  return 0;
+}
