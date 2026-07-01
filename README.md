@@ -3,6 +3,8 @@
 
 **Platform:** Unitree Go2 (simulated) | **Stack:** ROS2 Humble + Gazebo Classic 11 + BehaviorTree.CPP v4 + champ quadruped framework
 
+**Note on the robot model:** this project is simulated using the champ framework's `go1_config` (Unitree Go1) kinematics, since champ doesn't ship a Go2 model. "Go2 Resilient Inspector" names the mission scenario and the software system built around it, not a claim that the physical Go2 chassis is modeled in simulation.
+
 ---
 
 ## Demo
@@ -42,16 +44,16 @@ flowchart TB
 | `sim_machine_emulator` | Python | Publishes real per-station CAN telemetry (2 Hz), seeded anomalies at station_2 and station_4 |
 | `lidar_sim_node` | Python | Ray-cast-aware `/go2/scan` at 10 Hz; supports fault injection via `/fault_inject/lidar` |
 | `topic_health_monitor` | Python | Independent watchdog that detects topic silence and publishes `FaultEvent`. Runs as its own process so a planner crash can't disable it |
-| `mission_bt_node` | C++ | BehaviorTree.CPP v4 patrol logic. Navigates using a proportional controller on `/odom/ground_truth`. On `FaultEvent`, caps speed (0.30 → 0.15 m/s) and drops confidence (0.95 → 0.60) for all subsequent readings |
+| `mission_bt_node` | C++ | BehaviorTree.CPP v4 patrol logic. Navigates using a proportional controller on `/odom/ground_truth`. On `FaultEvent`, caps speed (0.30 to 0.15 m/s) and drops confidence (0.95 to 0.60) for all subsequent readings |
 | `inspection_report_gen` | Python | Aggregates results into JSON + Markdown reports |
 | `ekf_filter_node` | C++ (robot_localization) | Fuses `/go2/odom` + `/go2/imu`. Runs correctly but isn't consumed by navigation yet, that's reserved for future Nav2 integration |
 | `perception_node` | Python | Lookup-table-based obstacle proximity detection against a fixed set of known coordinates. A placeholder for real sensor-based perception, not actual image classification |
 | `joy_teleop_node` | C++ | PS5 controller manual override, written but not yet wired into the launch file |
 
 ### Custom message types (`go2_interfaces`)
-- `CanFrame.msg` — per-station CAN telemetry (temp, vibration, error code)
-- `FaultEvent.msg` — fault detection notification (subsystem, type, recovery action)
-- `InspectionResult.msg` — per-station inspection record with a confidence field
+- `CanFrame.msg`: per-station CAN telemetry (temp, vibration, error code)
+- `FaultEvent.msg`: fault detection notification (subsystem, type, recovery action)
+- `InspectionResult.msg`: per-station inspection record with a confidence field
 
 ---
 
@@ -150,8 +152,8 @@ These are cited on purpose. This project is about integrating real systems well,
 
 ---
 
-## Design Documents
-- [HAL_DESIGN.md](HAL_DESIGN.md) — Real-vs-mock SDK boundary specification. Read this before asking "would this work on real hardware?"
+## Design Notes
+- [HAL_DESIGN.md](HAL_DESIGN.md) covers where the mock hardware layer ends and real Go2 hardware would take over.
 
 ---
 
@@ -166,4 +168,4 @@ These are cited on purpose. This project is about integrating real systems well,
 ---
 
 ## Author
-Asrith Pandreka — [asrithmoose148@gmail.com](mailto:asrithmoose148@gmail.com)
+Asrith Pandreka: [asrithmoose148@gmail.com](mailto:asrithmoose148@gmail.com)
