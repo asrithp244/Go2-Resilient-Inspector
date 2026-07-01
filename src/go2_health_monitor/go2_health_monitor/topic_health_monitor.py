@@ -150,11 +150,15 @@ class TopicHealthMonitor(Node):
     def _heartbeat(self, subsystem: str) -> None:
         """Called on every received message for the given subsystem."""
         now_sec = self.get_clock().now().nanoseconds * 1e-9
+        if now_sec <= 0.0:
+            return  # sim clock not primed yet, don't record a bogus zero timestamp
         self._watched[subsystem].record_heartbeat(now_sec)
 
     def _watchdog_tick(self) -> None:
         """Periodic check — runs at check_rate_hz regardless of topic activity."""
         now_sec = self.get_clock().now().nanoseconds * 1e-9
+        if now_sec <= 0.0:
+            return  # sim clock not primed yet, skip this cycle
 
         for subsystem, watcher in self._watched.items():
             if watcher.check(now_sec):

@@ -2,7 +2,7 @@
 <sdf version="1.6">
   <model name="room">
     <static>1</static>
-    <!-- Room: 4.4m wide (X) x 4.0m deep (Y) x 2.86m tall (Z)
+    <!-- Room: 4.4m wide (X) x 4.0m deep (Y) x 1.0m tall (Z)
          Collision and visual use simple boxes - no mesh, safe on VirtualBox.
          The Scaniverse OBJ is too heavy for VirtualBox OpenGL to render. -->
     <pose>0 0 0 0 0 0</pose>
@@ -24,12 +24,12 @@
 
       <!-- ── North wall ─────────────────────────────────────────────────── -->
       <collision name="wall_north_col">
-        <pose>0 2.0 1.43 0 0 0</pose>
-        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+        <pose>0 2.0 0.5 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 1.0</size></box></geometry>
       </collision>
       <visual name="wall_north_vis">
-        <pose>0 2.0 1.43 0 0 0</pose>
-        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+        <pose>0 2.0 0.5 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 1.0</size></box></geometry>
         <material>
           <ambient>0.8 0.8 0.75 1</ambient>
           <diffuse>0.8 0.8 0.75 1</diffuse>
@@ -38,12 +38,12 @@
 
       <!-- ── South wall ─────────────────────────────────────────────────── -->
       <collision name="wall_south_col">
-        <pose>0 -2.0 1.43 0 0 0</pose>
-        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+        <pose>0 -2.0 0.5 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 1.0</size></box></geometry>
       </collision>
       <visual name="wall_south_vis">
-        <pose>0 -2.0 1.43 0 0 0</pose>
-        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+        <pose>0 -2.0 0.5 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 1.0</size></box></geometry>
         <material>
           <ambient>0.8 0.8 0.75 1</ambient>
           <diffuse>0.8 0.8 0.75 1</diffuse>
@@ -52,12 +52,12 @@
 
       <!-- ── East wall ──────────────────────────────────────────────────── -->
       <collision name="wall_east_col">
-        <pose>2.2 0 1.43 0 0 0</pose>
-        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+        <pose>2.2 0 0.5 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 1.0</size></box></geometry>
       </collision>
       <visual name="wall_east_vis">
-        <pose>2.2 0 1.43 0 0 0</pose>
-        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+        <pose>2.2 0 0.5 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 1.0</size></box></geometry>
         <material>
           <ambient>0.8 0.8 0.75 1</ambient>
           <diffuse>0.8 0.8 0.75 1</diffuse>
@@ -66,12 +66,12 @@
 
       <!-- ── West wall ──────────────────────────────────────────────────── -->
       <collision name="wall_west_col">
-        <pose>-2.2 0 1.43 0 0 0</pose>
-        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+        <pose>-2.2 0 0.5 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 1.0</size></box></geometry>
       </collision>
       <visual name="wall_west_vis">
-        <pose>-2.2 0 1.43 0 0 0</pose>
-        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+        <pose>-2.2 0 0.5 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 1.0</size></box></geometry>
         <material>
           <ambient>0.8 0.8 0.75 1</ambient>
           <diffuse>0.8 0.8 0.75 1</diffuse>
