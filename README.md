@@ -8,7 +8,7 @@
 ---
 
 ## Demo
-[![Go2 Resilient Inspector Demo](https://img.youtube.com/vi/PLACEHOLDER/maxresdefault.jpg)](https://www.youtube.com/watch?v=PLACEHOLDER)
+[![Go2 Resilient Inspector Demo]([https://img.youtube.com/vi/PLACEHOLDER/maxresdefault.jpg](https://youtu.be/m5qTH3oMhwk))]((https://youtu.be/m5qTH3oMhwk))
 
 *Watch the lidar fault get injected mid-patrol, the fault detection and mode switch in the terminal, and the robot completing the remaining stations at reduced speed and confidence.*
 
