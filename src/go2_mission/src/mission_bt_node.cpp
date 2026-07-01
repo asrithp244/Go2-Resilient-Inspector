@@ -47,7 +47,7 @@ struct RobotPose {
   std::atomic<double> x{0.0};
   std::atomic<double> y{0.0};
   std::atomic<double> yaw{0.0};
-  std::atomic<bool>   valid{false};  // true once first odom message received
+  std::atomic<bool>   valid{false};
 };
 
 // ── Normalize angle to [-pi, pi] ─────────────────────────────────────────────
@@ -62,19 +62,12 @@ static double normalize_angle(double a)
 class NavigateToStation : public BT::StatefulActionNode
 {
 public:
-  // Arrival threshold (metres) — robot considered "at" waypoint within this distance
   static constexpr double ARRIVAL_THRESHOLD   = 0.5;
-  // Maximum linear speed (m/s) — normal mode
   static constexpr double MAX_LINEAR_NORMAL   = 0.30;
-  // Maximum linear speed (m/s) — degraded mode (half speed)
   static constexpr double MAX_LINEAR_DEGRADED = 0.15;
-  // Maximum angular speed (rad/s)
   static constexpr double MAX_ANGULAR         = 0.60;
-  // Angular proportional gain
   static constexpr double KP_ANGULAR          = 1.2;
-  // Linear proportional gain (capped at max)
   static constexpr double KP_LINEAR           = 0.5;
-  // Heading error below which we start driving forward (rad, ~23 deg)
   static constexpr double HEADING_THRESHOLD   = 0.40;
 
   NavigateToStation(const std::string & name,
@@ -119,7 +112,6 @@ public:
 
   BT::NodeStatus onRunning() override
   {
-    // Wait for first odometry message
     if (!pose_->valid.load()) {
       return BT::NodeStatus::RUNNING;
     }
@@ -132,7 +124,6 @@ public:
     const double dy   = target_y_ - cy;
     const double dist = std::sqrt(dx * dx + dy * dy);
 
-    // ── Arrival check ────────────────────────────────────────────────────────
     if (dist < ARRIVAL_THRESHOLD) {
       stop_robot();
       RCLCPP_INFO(node_->get_logger(),
@@ -142,7 +133,6 @@ public:
       return BT::NodeStatus::SUCCESS;
     }
 
-    // ── Proportional controller ───────────────────────────────────────────────
     const double angle_to_goal = std::atan2(dy, dx);
     const double heading_error = normalize_angle(angle_to_goal - cyaw);
     const double max_linear    = g_degraded_mode.load()
@@ -152,11 +142,9 @@ public:
     geometry_msgs::msg::Twist cmd;
 
     if (std::abs(heading_error) > HEADING_THRESHOLD) {
-      // Turn in place first — large heading error
       cmd.angular.z = std::clamp(KP_ANGULAR * heading_error, -MAX_ANGULAR, MAX_ANGULAR);
       cmd.linear.x  = 0.0;
     } else {
-      // Drive forward with continuous heading correction
       cmd.linear.x  = std::min(KP_LINEAR * dist, max_linear);
       cmd.angular.z = std::clamp(
         KP_ANGULAR * heading_error * 0.5, -MAX_ANGULAR * 0.5, MAX_ANGULAR * 0.5);
@@ -170,7 +158,7 @@ public:
   {
     stop_robot();
     RCLCPP_INFO(node_->get_logger(),
-      "[NavigateToStation] Halted at %s — robot stopped.", station_id_.c_str());
+      "[NavigateToStation] Halted at %s.", station_id_.c_str());
   }
 
 private:
@@ -221,7 +209,6 @@ public:
 
   BT::NodeStatus onRunning() override
   {
-    // 2 seconds for perception + telemetry
     if ((node_->now() - start_time_).seconds() < 2.0) {
       return BT::NodeStatus::RUNNING;
     }
@@ -235,14 +222,13 @@ private:
   void publish_result()
   {
     go2_interfaces::msg::InspectionResult result;
-    result.station_id    = station_id_;
-    const auto t         = node_->now();
+    result.station_id = station_id_;
+    const auto t = node_->now();
     result.inspected_at.sec     = static_cast<int32_t>(t.nanoseconds() / 1000000000LL);
     result.inspected_at.nanosec = static_cast<uint32_t>(t.nanoseconds() % 1000000000LL);
     result.degraded_mode = g_degraded_mode.load();
     result.confidence    = g_confidence_level.load();
 
-    // Anomaly seeding: stations 2 and 4 have known anomalies in simulation.
     if (station_id_ == "station_2" || station_id_ == "station_4") {
       result.telemetry_anomaly_detected = true;
       result.anomaly_description = (station_id_ == "station_2")
@@ -291,46 +277,39 @@ public:
   MissionBTNode()
   : Node("mission_bt_node")
   {
-    // ── Parameters ─────────────────────────────────────────────────────────
     this->declare_parameter("bt_xml_file",         "");
     this->declare_parameter("tick_rate_hz",        10.0);
     this->declare_parameter("normal_confidence",   0.95f);
     this->declare_parameter("degraded_confidence", 0.60f);
     this->declare_parameter("enable_groot2",       false);
 
-    const float normal_conf = this->get_parameter("normal_confidence").as_double();
-    degraded_confidence_    = this->get_parameter("degraded_confidence").as_double();
+    const float normal_conf  = this->get_parameter("normal_confidence").as_double();
+    degraded_confidence_     = this->get_parameter("degraded_confidence").as_double();
     g_confidence_level.store(normal_conf);
 
-    // ── Shared pose ────────────────────────────────────────────────────────
     pose_ = std::make_shared<RobotPose>();
 
-    // ── QoS ────────────────────────────────────────────────────────────────
     auto reliable_qos = rclcpp::QoS(10).reliable();
     auto sensor_qos   = rclcpp::QoS(5).best_effort();
 
-    // ── Publishers ─────────────────────────────────────────────────────────
     result_pub_  = create_publisher<go2_interfaces::msg::InspectionResult>(
       "/mission/inspection_log", reliable_qos);
 
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(
       "/cmd_vel", rclcpp::QoS(10).reliable());
 
-    // ── Odometry subscriber ─────────────────────────────────────────────────
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
       "/odom/ground_truth", sensor_qos,
       [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         handle_odom(msg);
       });
 
-    // ── Fault event subscriber ──────────────────────────────────────────────
     fault_sub_ = create_subscription<go2_interfaces::msg::FaultEvent>(
       "/mission/fault_event", reliable_qos,
       [this](const go2_interfaces::msg::FaultEvent::SharedPtr msg) {
         handle_fault(msg);
       });
 
-    // ── Defer tree build until after constructor (shared_from_this() requires it) ──
     init_timer_ = create_wall_timer(
       std::chrono::milliseconds(1),
       [this]() {
@@ -338,7 +317,6 @@ public:
         build_tree();
       });
 
-    // ── Mission tick timer ─────────────────────────────────────────────────
     const double tick_rate = this->get_parameter("tick_rate_hz").as_double();
     tick_timer_ = create_wall_timer(
       std::chrono::duration<double>(1.0 / tick_rate),
@@ -350,13 +328,11 @@ public:
   }
 
 private:
-  // ── /odom callback — extract x, y, yaw ──────────────────────────────────
   void handle_odom(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
     const auto & p = msg->pose.pose.position;
     const auto & q = msg->pose.pose.orientation;
 
-    // Convert quaternion to yaw (Z-up, 2D planar assumption)
     const double siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
     const double cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
     const double yaw       = std::atan2(siny_cosp, cosy_cosp);
@@ -420,13 +396,12 @@ private:
 
   void tick_tree()
   {
-    if (mission_complete_) {return;}
+    if (mission_complete_) { return; }
 
     const auto status = tree_.tickOnce();
 
     if (status == BT::NodeStatus::SUCCESS) {
       mission_complete_ = true;
-      // Ensure robot is stopped at end of mission
       geometry_msgs::msg::Twist stop;
       cmd_vel_pub_->publish(stop);
       RCLCPP_INFO(get_logger(),
@@ -446,7 +421,7 @@ private:
     // Waypoints form a square patrol route around the origin.
     // Home (0,0) -> station_1 (1.5,0) -> station_2 (1.5,1.5)
     //            -> station_3 (0,1.5)  -> station_4 (-1.5,1.5) -> station_5 (-1.5,0) -> home
-    // ±1.5m legs fit inside the 4.4m x 4.0m room scan with ~0.7m wall clearance.
+    // +/-1.5m legs fit inside the 4.4m x 4.0m room scan with ~0.7m wall clearance.
     return R"(
 <root BTCPP_format="4">
   <BehaviorTree ID="InspectionMission">
@@ -491,4 +466,19 @@ private:
 
   std::shared_ptr<RobotPose> pose_;
 
-  BT::Tre
+  BT::Tree                             tree_;
+  std::unique_ptr<BT::Groot2Publisher> groot2_pub_;
+
+  bool   mission_complete_{false};
+  double degraded_confidence_{0.60};
+};
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<MissionBTNode>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+  return 0;
+}
