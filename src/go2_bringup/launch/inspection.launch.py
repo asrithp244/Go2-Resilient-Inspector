@@ -42,10 +42,16 @@ def generate_launch_description():
 
     robot_description = {'robot_description': Command(['xacro ', urdf])}
 
+    # ── GAZEBO_MODEL_PATH — lets Gazebo resolve model://room ─────────────────
+    models_dir   = os.path.join(go2_bringup_pkg, 'models')
+    existing_gmp = os.environ.get('GAZEBO_MODEL_PATH', '')
+    gazebo_model_path = (models_dir + ':' + existing_gmp) if existing_gmp else models_dir
+
     # ── t=0s: Gazebo + robot_state_publisher ─────────────────────────────────
     gzserver = ExecuteProcess(
         cmd=['gzserver', '-s', 'libgazebo_ros_init.so',
              '-s', 'libgazebo_ros_factory.so', world],
+        additional_env={'GAZEBO_MODEL_PATH': gazebo_model_path},
         output='screen'
     )
 

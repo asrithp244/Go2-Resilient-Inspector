@@ -444,33 +444,33 @@ private:
   static std::string get_embedded_bt_xml()
   {
     // Waypoints form a square patrol route around the origin.
-    // Home (0,0) -> station_1 (3,0) -> station_2 (3,3)
-    //            -> station_3 (0,3) -> station_4 (-3,3) -> station_5 (-3,0) -> home
-    // 3m legs so the patrol completes in reasonable simulation time.
+    // Home (0,0) -> station_1 (1.5,0) -> station_2 (1.5,1.5)
+    //            -> station_3 (0,1.5)  -> station_4 (-1.5,1.5) -> station_5 (-1.5,0) -> home
+    // ±1.5m legs fit inside the 4.4m x 4.0m room scan with ~0.7m wall clearance.
     return R"(
 <root BTCPP_format="4">
   <BehaviorTree ID="InspectionMission">
     <Sequence name="PatrolSequence">
 
-      <!-- Station 1: forward 3m -->
-      <NavigateToStation station_id="station_1" x="3.0" y="0.0" yaw="0.0"/>
-      <InspectStation    station_id="station_1" x="3.0" y="0.0"/>
+      <!-- Station 1: forward 1.5m -->
+      <NavigateToStation station_id="station_1" x="1.5" y="0.0" yaw="0.0"/>
+      <InspectStation    station_id="station_1" x="1.5" y="0.0"/>
 
       <!-- Station 2 (seeded anomaly: high vibration + error 0x03) -->
-      <NavigateToStation station_id="station_2" x="3.0" y="3.0" yaw="1.57"/>
-      <InspectStation    station_id="station_2" x="3.0" y="3.0"/>
+      <NavigateToStation station_id="station_2" x="1.5" y="1.5" yaw="1.57"/>
+      <InspectStation    station_id="station_2" x="1.5" y="1.5"/>
 
       <!-- Station 3 -->
-      <NavigateToStation station_id="station_3" x="0.0" y="3.0" yaw="3.14"/>
-      <InspectStation    station_id="station_3" x="0.0" y="3.0"/>
+      <NavigateToStation station_id="station_3" x="0.0" y="1.5" yaw="3.14"/>
+      <InspectStation    station_id="station_3" x="0.0" y="1.5"/>
 
       <!-- Station 4 (seeded anomaly: motor overtemp + visual warning) -->
-      <NavigateToStation station_id="station_4" x="-3.0" y="3.0" yaw="3.14"/>
-      <InspectStation    station_id="station_4" x="-3.0" y="3.0"/>
+      <NavigateToStation station_id="station_4" x="-1.5" y="1.5" yaw="3.14"/>
+      <InspectStation    station_id="station_4" x="-1.5" y="1.5"/>
 
       <!-- Station 5 -->
-      <NavigateToStation station_id="station_5" x="-3.0" y="0.0" yaw="4.71"/>
-      <InspectStation    station_id="station_5" x="-3.0" y="0.0"/>
+      <NavigateToStation station_id="station_5" x="-1.5" y="0.0" yaw="4.71"/>
+      <InspectStation    station_id="station_5" x="-1.5" y="0.0"/>
 
       <!-- Return home -->
       <NavigateToStation station_id="home" x="0.0" y="0.0" yaw="0.0"/>
@@ -491,19 +491,4 @@ private:
 
   std::shared_ptr<RobotPose> pose_;
 
-  BT::Tree                             tree_;
-  std::unique_ptr<BT::Groot2Publisher> groot2_pub_;
-
-  bool   mission_complete_{false};
-  double degraded_confidence_{0.60};
-};
-
-// ── Entry point ───────────────────────────────────────────────────────────────
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<MissionBTNode>();
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
-}
+  BT::Tre

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="room">
+    <static>1</static>
+    <!-- Rotate +90deg around X to convert Scaniverse Y-up to Gazebo Z-up.
+         Z offset 0.15 lifts mesh so floor sits on the Gazebo ground plane. -->
+    <pose>0 0 0.15 1.5708 0 0</pose>
+    <link name="link">
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>model://room/meshes/room.obj</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://room/meshes/room.obj</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>
