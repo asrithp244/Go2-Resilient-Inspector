@@ -1,0 +1,12 @@
+{
+  "name": "Go2 Resilient Inspector",
+  "image": "osrf/ros:humble-desktop-full",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "postCreateCommand": "bash -c 'source /opt/ros/humble/setup.bash && cd /workspace && rosdep update && rosdep install --from-paths src --ignore-src -r -y && colcon build --symlink-install'",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-iot.vscode-ros", "ms-vscode.cpptools", "ms-python.python"]
+    }
+  }
+}
