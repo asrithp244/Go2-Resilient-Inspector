@@ -29,12 +29,17 @@
 
 #include "go2_interfaces/msg/fault_event.hpp"
 #include "go2_interfaces/msg/inspection_result.hpp"
+#include "go2_interfaces/msg/can_frame.hpp"
 
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <vector>
 
 using namespace std::chrono_literals;
 
@@ -48,6 +53,32 @@ struct RobotPose {
   std::atomic<double> y{0.0};
   std::atomic<double> yaw{0.0};
   std::atomic<bool>   valid{false};
+};
+
+// ── Shared CAN telemetry (written by station subscribers, read by InspectStation) ──
+// Thresholds match sim_machine_emulator STATION_CONFIGS anomaly seeds.
+constexpr float TEMP_ANOMALY_THRESHOLD      = 80.0f;   // °C
+constexpr float VIBRATION_ANOMALY_THRESHOLD = 0.50f;
+
+struct LatestTelemetry {
+  std::mutex mtx;
+  std::map<std::string, go2_interfaces::msg::CanFrame> frames;
+
+  // Returns false if no frame has arrived yet for this station.
+  bool get(const std::string & station_id,
+           go2_interfaces::msg::CanFrame & out) {
+    std::lock_guard<std::mutex> lock(mtx);
+    auto it = frames.find(station_id);
+    if (it == frames.end()) return false;
+    out = it->second;
+    return true;
+  }
+
+  void update(const std::string & station_id,
+              const go2_interfaces::msg::CanFrame & frame) {
+    std::lock_guard<std::mutex> lock(mtx);
+    frames[station_id] = frame;
+  }
 };
 
 // ── Normalize angle to [-pi, pi] ─────────────────────────────────────────────
@@ -183,8 +214,13 @@ public:
   InspectStation(const std::string & name,
                  const BT::NodeConfig & config,
                  rclcpp::Node::SharedPtr node,
-                 rclcpp::Publisher<go2_interfaces::msg::InspectionResult>::SharedPtr result_pub)
-  : BT::StatefulActionNode(name, config), node_(node), result_pub_(result_pub) {}
+                 rclcpp::Publisher<go2_interfaces::msg::InspectionResult>::SharedPtr result_pub,
+                 std::shared_ptr<LatestTelemetry> telemetry)
+  : BT::StatefulActionNode(name, config),
+    node_(node),
+    result_pub_(result_pub),
+    telemetry_(telemetry)
+  {}
 
   static BT::PortsList providedPorts()
   {
@@ -209,6 +245,7 @@ public:
 
   BT::NodeStatus onRunning() override
   {
+    // Hold for 2s to collect at least 4 CAN frames (emulator publishes at 2 Hz)
     if ((node_->now() - start_time_).seconds() < 2.0) {
       return BT::NodeStatus::RUNNING;
     }
@@ -219,38 +256,85 @@ public:
   void onHalted() override {}
 
 private:
+  /**
+   * Read the latest CanFrame for this station from the shared telemetry store.
+   * Apply threshold checks to determine anomaly status.
+   * All anomaly data comes from real CAN values — nothing is hardcoded.
+   */
   void publish_result()
   {
     go2_interfaces::msg::InspectionResult result;
-    result.station_id = station_id_;
+    result.station_id    = station_id_;
     const auto t = node_->now();
     result.inspected_at.sec     = static_cast<int32_t>(t.nanoseconds() / 1000000000LL);
     result.inspected_at.nanosec = static_cast<uint32_t>(t.nanoseconds() % 1000000000LL);
     result.degraded_mode = g_degraded_mode.load();
     result.confidence    = g_confidence_level.load();
 
-    if (station_id_ == "station_2" || station_id_ == "station_4") {
+    go2_interfaces::msg::CanFrame frame;
+    const bool has_data = telemetry_->get(station_id_, frame);
+
+    if (!has_data) {
+      // No CAN frame received yet — flag as anomaly (cannot confirm health)
       result.telemetry_anomaly_detected = true;
-      result.anomaly_description = (station_id_ == "station_2")
-        ? "high_vibration_level=0.87; error_code=0x03"
-        : "motor_temp_c=94.2 (threshold=80); visual_warning_light=RED";
-      result.visual_anomaly_detected = (station_id_ == "station_4");
-    } else {
-      result.telemetry_anomaly_detected = false;
       result.visual_anomaly_detected    = false;
-      result.anomaly_description        = "nominal";
+      result.anomaly_description        = "can_telemetry_unavailable";
+      RCLCPP_WARN(node_->get_logger(),
+        "[InspectStation] %s: no CAN frame received — flagging as anomaly.",
+        station_id_.c_str());
+    } else {
+      // Apply threshold checks against real telemetry values
+      const bool temp_fault      = frame.motor_temp_c     > TEMP_ANOMALY_THRESHOLD;
+      const bool vibration_fault = frame.vibration_level  > VIBRATION_ANOMALY_THRESHOLD;
+      const bool error_fault     = frame.error_code       != 0;
+      const bool any_anomaly     = temp_fault || vibration_fault || error_fault;
+
+      result.telemetry_anomaly_detected = any_anomaly;
+      result.visual_anomaly_detected    = false;  // camera perception not yet wired
+
+      if (any_anomaly) {
+        // Build human-readable description from actual values
+        std::string desc;
+        if (temp_fault) {
+          char buf[64];
+          std::snprintf(buf, sizeof(buf),
+            "motor_temp_c=%.1f (threshold=%.0f)",
+            frame.motor_temp_c, TEMP_ANOMALY_THRESHOLD);
+          desc += buf;
+        }
+        if (vibration_fault) {
+          if (!desc.empty()) desc += "; ";
+          char buf[64];
+          std::snprintf(buf, sizeof(buf),
+            "vibration_level=%.3f (threshold=%.2f)",
+            frame.vibration_level, VIBRATION_ANOMALY_THRESHOLD);
+          desc += buf;
+        }
+        if (error_fault) {
+          if (!desc.empty()) desc += "; ";
+          char buf[32];
+          std::snprintf(buf, sizeof(buf), "error_code=0x%02X", frame.error_code);
+          desc += buf;
+        }
+        result.anomaly_description = desc;
+      } else {
+        result.anomaly_description = "nominal";
+      }
+
+      RCLCPP_INFO(node_->get_logger(),
+        "[InspectStation] %s: temp=%.1fC vib=%.3f err=0x%02X -> anomaly=%s conf=%.2f",
+        station_id_.c_str(),
+        frame.motor_temp_c, frame.vibration_level, frame.error_code,
+        any_anomaly ? "YES" : "NO",
+        result.confidence);
     }
 
     result_pub_->publish(result);
-    RCLCPP_INFO(node_->get_logger(),
-      "[InspectStation] %s: anomaly=%s, confidence=%.2f",
-      station_id_.c_str(),
-      (result.telemetry_anomaly_detected || result.visual_anomaly_detected) ? "YES" : "NO",
-      result.confidence);
   }
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::Publisher<go2_interfaces::msg::InspectionResult>::SharedPtr result_pub_;
+  std::shared_ptr<LatestTelemetry> telemetry_;
   std::string station_id_;
   rclcpp::Time start_time_;
 };
@@ -287,7 +371,8 @@ public:
     degraded_confidence_     = this->get_parameter("degraded_confidence").as_double();
     g_confidence_level.store(normal_conf);
 
-    pose_ = std::make_shared<RobotPose>();
+    pose_      = std::make_shared<RobotPose>();
+    telemetry_ = std::make_shared<LatestTelemetry>();
 
     auto reliable_qos = rclcpp::QoS(10).reliable();
     auto sensor_qos   = rclcpp::QoS(5).best_effort();
@@ -309,6 +394,24 @@ public:
       [this](const go2_interfaces::msg::FaultEvent::SharedPtr msg) {
         handle_fault(msg);
       });
+
+    // Subscribe to CAN telemetry from all inspection stations.
+    // sim_machine_emulator publishes on /station_N/can_telemetry at 2 Hz.
+    // InspectStation reads from telemetry_ instead of using hardcoded values.
+    const std::vector<std::string> station_ids = {
+      "station_1", "station_2", "station_3", "station_4", "station_5"
+    };
+    for (const auto & sid : station_ids) {
+      const std::string topic = "/" + sid + "/can_telemetry";
+      can_subs_.push_back(
+        create_subscription<go2_interfaces::msg::CanFrame>(
+          topic, sensor_qos,
+          [this, sid](const go2_interfaces::msg::CanFrame::SharedPtr msg) {
+            telemetry_->update(sid, *msg);
+          }));
+    }
+    RCLCPP_INFO(get_logger(),
+      "Subscribed to CAN telemetry for %zu stations.", station_ids.size());
 
     init_timer_ = create_wall_timer(
       std::chrono::milliseconds(1),
@@ -376,7 +479,7 @@ private:
       "InspectStation",
       [this](const std::string & name, const BT::NodeConfig & config) {
         return std::make_unique<InspectStation>(
-          name, config, shared_from_this(), result_pub_);
+          name, config, shared_from_this(), result_pub_, telemetry_);
       });
 
     const std::string bt_file = this->get_parameter("bt_xml_file").as_string();
@@ -461,10 +564,12 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr              cmd_vel_pub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr             odom_sub_;
   rclcpp::Subscription<go2_interfaces::msg::FaultEvent>::SharedPtr     fault_sub_;
+  std::vector<rclcpp::Subscription<go2_interfaces::msg::CanFrame>::SharedPtr> can_subs_;
   rclcpp::TimerBase::SharedPtr tick_timer_;
   rclcpp::TimerBase::SharedPtr init_timer_;
 
-  std::shared_ptr<RobotPose> pose_;
+  std::shared_ptr<RobotPose>       pose_;
+  std::shared_ptr<LatestTelemetry> telemetry_;
 
   BT::Tree                             tree_;
   std::unique_ptr<BT::Groot2Publisher> groot2_pub_;
