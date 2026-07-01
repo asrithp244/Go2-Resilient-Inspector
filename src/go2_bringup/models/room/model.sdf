@@ -2,19 +2,21 @@
 <sdf version="1.6">
   <model name="room">
     <static>1</static>
-    <!-- Rotate +90deg around X to convert Scaniverse Y-up to Gazebo Z-up.
-         Z offset 0.05 places the floor on the Gazebo ground plane. -->
-    <pose>0 0 0.05 1.5708 0 0</pose>
+    <!-- No rotation at model level.
+         Box collisions are in world Z-up coordinates.
+         Only the visual mesh needs the Y-up to Z-up rotation. -->
+    <pose>0 0 0 0 0 0</pose>
     <link name="link">
 
-      <!-- Simple box collisions - keeps physics fast on VirtualBox.
-           Room is 4.4m wide x 4.0m deep x 2.86m tall. -->
+      <!-- Floor -->
       <collision name="floor_collision">
-        <pose>0 0 0 0 0 0</pose>
+        <pose>0 0 0.025 0 0 0</pose>
         <geometry>
           <box><size>4.4 4.0 0.05</size></box>
         </geometry>
       </collision>
+
+      <!-- Walls: room is 4.4m wide (X) x 4.0m deep (Y) x 2.86m tall (Z) -->
       <collision name="wall_north">
         <pose>0 2.0 1.43 0 0 0</pose>
         <geometry>
@@ -40,8 +42,9 @@
         </geometry>
       </collision>
 
-      <!-- Full mesh for visual only -->
+      <!-- Visual mesh: rotated +90deg around X to convert Scaniverse Y-up to Gazebo Z-up -->
       <visual name="visual">
+        <pose>0 0 0 1.5708 0 0</pose>
         <geometry>
           <mesh>
             <uri>model://room/meshes/room.obj</uri>
