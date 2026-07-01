@@ -3,7 +3,6 @@ project(go2_perception)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
-find_package(go2_interfaces REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 

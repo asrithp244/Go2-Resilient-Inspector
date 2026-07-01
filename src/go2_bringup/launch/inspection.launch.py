@@ -11,6 +11,7 @@ Startup sequence (timed to avoid race conditions):
   t=14s  Load joint_states_controller
   t=16s  Load joint_group_effort_controller
   t=19s  mission_bt_node (begins patrol once /odom/ground_truth arrives)
+  t=22s  perception_node (obstacle proximity detection)
 
 Usage:
   ros2 launch go2_bringup inspection.launch.py
@@ -135,6 +136,19 @@ def generate_launch_description():
         ]
     )
 
+    # ── t=22s: perception_node ────────────────────────────────────────────────
+    perception_node = TimerAction(
+        period=22.0,
+        actions=[
+            LogInfo(msg='[inspection.launch] Starting perception_node...'),
+            Node(
+                package='go2_perception',
+                executable='perception_node',
+                output='screen',
+            ),
+        ]
+    )
+
     return LaunchDescription([
         gzserver,
         gzclient,
@@ -144,4 +158,5 @@ def generate_launch_description():
         load_joint_states,
         load_effort,
         mission_bt_node,
+        perception_node,
     ])
