@@ -52,9 +52,6 @@ No loops. Every frame has exactly one parent. Verified against `ros2 run tf2_too
 
 Note: this is the physical TF tree champ uses for locomotion. `mission_bt_node`'s own patrol navigation reads `/odom/ground_truth` directly rather than consuming this tree, and the project's own `ekf_filter_node` (robot_localization) runs with `publish_tf: false` so it doesn't touch this transform at all. See the main README for that distinction.
 
-No loops. Every frame has exactly one parent. Verified against `ros2 run tf2_tools view_frames`.
-
-Note: this is the physical TF tree champ uses for locomotion. `mission_bt_node`'s own patrol navigation reads `/odom/ground_truth` directly rather than consuming this tree, and the project's own `ekf_filter_node` (robot_localization) runs with `publish_tf: false` so it doesn't touch this transform at all. See the main README for that distinction.
 
 ---
 
