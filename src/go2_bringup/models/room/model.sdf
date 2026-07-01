@@ -3,17 +3,44 @@
   <model name="room">
     <static>1</static>
     <!-- Rotate +90deg around X to convert Scaniverse Y-up to Gazebo Z-up.
-         Z offset 0.15 lifts mesh so floor sits on the Gazebo ground plane. -->
-    <pose>0 0 0.15 1.5708 0 0</pose>
+         Z offset 0.05 places the floor on the Gazebo ground plane. -->
+    <pose>0 0 0.05 1.5708 0 0</pose>
     <link name="link">
-      <collision name="collision">
+
+      <!-- Simple box collisions - keeps physics fast on VirtualBox.
+           Room is 4.4m wide x 4.0m deep x 2.86m tall. -->
+      <collision name="floor_collision">
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
-          <mesh>
-            <uri>model://room/meshes/room.obj</uri>
-            <scale>1 1 1</scale>
-          </mesh>
+          <box><size>4.4 4.0 0.05</size></box>
         </geometry>
       </collision>
+      <collision name="wall_north">
+        <pose>0 2.0 1.43 0 0 0</pose>
+        <geometry>
+          <box><size>4.4 0.05 2.86</size></box>
+        </geometry>
+      </collision>
+      <collision name="wall_south">
+        <pose>0 -2.0 1.43 0 0 0</pose>
+        <geometry>
+          <box><size>4.4 0.05 2.86</size></box>
+        </geometry>
+      </collision>
+      <collision name="wall_east">
+        <pose>2.2 0 1.43 0 0 0</pose>
+        <geometry>
+          <box><size>0.05 4.0 2.86</size></box>
+        </geometry>
+      </collision>
+      <collision name="wall_west">
+        <pose>-2.2 0 1.43 0 0 0</pose>
+        <geometry>
+          <box><size>0.05 4.0 2.86</size></box>
+        </geometry>
+      </collision>
+
+      <!-- Full mesh for visual only -->
       <visual name="visual">
         <geometry>
           <mesh>
@@ -22,6 +49,7 @@
           </mesh>
         </geometry>
       </visual>
+
     </link>
   </model>
 </sdf>
