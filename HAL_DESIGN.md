@@ -34,16 +34,23 @@ The Go2 UDP protocol is documented in Unitree's SDK2 spec. LowState is received 
 
 ## Frame tree
 Both mock and real modes publish this tf2 tree, used by champ's own gait control:
-map
-└── odom                    (published by champ's internal EKFs: base_to_footprint_ekf, footprint_to_odom_ekf)
-└── base_link           (published by champ_bringup)
-├── go2/imu_link   (static: from URDF)
-├── go2/lidar_link (static: from URDF)
-├── go2/camera_link(static: from URDF)
-├── FL_foot        (published by: go2_hal_node foot contact)
-├── FR_foot
-├── RL_foot
-└── RR_foot
+
+```mermaid
+flowchart TD
+    MAP[map] --> ODOM["odom<br/>published by champ's internal EKFs:<br/>base_to_footprint_ekf, footprint_to_odom_ekf"]
+    ODOM --> BASE["base_link<br/>published by champ_bringup"]
+    BASE --> IMU["go2/imu_link<br/>static, from URDF"]
+    BASE --> LIDAR["go2/lidar_link<br/>static, from URDF"]
+    BASE --> CAM["go2/camera_link<br/>static, from URDF"]
+    BASE --> FL["FL_foot<br/>published by go2_hal_node foot contact"]
+    BASE --> FR["FR_foot"]
+    BASE --> RL["RL_foot"]
+    BASE --> RR["RR_foot"]
+```
+
+No loops. Every frame has exactly one parent. Verified against `ros2 run tf2_tools view_frames`.
+
+Note: this is the physical TF tree champ uses for locomotion. `mission_bt_node`'s own patrol navigation reads `/odom/ground_truth` directly rather than consuming this tree, and the project's own `ekf_filter_node` (robot_localization) runs with `publish_tf: false` so it doesn't touch this transform at all. See the main README for that distinction.
 
 No loops. Every frame has exactly one parent. Verified against `ros2 run tf2_tools view_frames`.
 
