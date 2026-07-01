@@ -7,4 +7,4 @@ install(DIRECTORY launch config worlds urdf models
   DESTINATION share/${PROJECT_NAME}
 )
 
-ament_pac
+ament_package()
