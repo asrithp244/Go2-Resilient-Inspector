@@ -1,5 +1,5 @@
 # go2-resilient-inspector
-> A quadruped robot is deployed alone into an offshore facility no human can safely enter. It autonomously inspects machinery by reading live health telemetry against real thresholds. Partway through the mission, its LiDAR fails. Instead of aborting, it detects the failure, degrades its navigation confidence and speed, and completes the mission — then hands back a structured report that honestly flags which readings happened under reduced confidence.
+> A quadruped robot is deployed alone into an offshore facility no human can safely enter. It autonomously inspects machinery by reading live health telemetry against real thresholds. Partway through the mission its LiDAR fails. Instead of aborting, it detects the failure, degrades its navigation confidence and speed, and completes the mission anyway, then hands back a structured report that honestly flags which readings happened under reduced confidence.
 
 **Platform:** Unitree Go2 (simulated) | **Stack:** ROS2 Humble + Gazebo Classic 11 + BehaviorTree.CPP v4 + champ quadruped framework
 
@@ -14,61 +14,39 @@
 
 ## System Architecture
 
-┌──────────────────────────────────────────────────────────────────┐
-│                      go2-resilient-inspector                     │
-│                                                                  │
-│  ┌──────────────┐   ┌───────────────┐   ┌──────────────────┐    │
-│  │ go2_hal_node │   │ sim_machine_  │   │ lidar_sim_node   │    │
-│  │  (C++ HAL,   │   │ emulator      │   │ (wall-aware      │    │
-│  │  mock mode)  │   │ (CAN telemetry│   │  /go2/scan,      │    │
-│  └──────┬───────┘   │  per station) │   │  fault-injectable)│    │
-│         │            └──────┬────────┘   └────────┬─────────┘   │
-│         │ joint_states       │ can_telemetry        │ /go2/scan  │
-│         │                    │                      │            │
-│  ┌──────▼───────┐            │            ┌─────────▼─────────┐  │
-│  │ champ_bringup│            │            │ topic_health_     │  │
-│  │ (locomotion, │            │            │ monitor           │  │
-│  │  its own EKFs│            │            │ (independent      │  │
-│  │  for gait)   │            │            │  watchdog)        │  │
-│  └──────┬───────┘            │            └────────┬─────────┘  │
-│         │ /odom/ground_truth │                      │ FaultEvent │
-│         │                    │                      │            │
-│  ┌──────▼────────────────────▼──────────────────────▼─────────┐ │
-│  │                     mission_bt_node                        │ │
-│  │   NavigateToStation (proportional controller on ground-    │ │
-│  │   truth odom) + InspectStation (real CAN threshold checks) │ │
-│  │   + fault handler (speed cap + confidence drop on fault)   │ │
-│  └──────────────────────────────┬─────────────────────────────┘ │
-│                                  │ inspection_log                │
-│                        ┌─────────▼─────────┐                    │
-│                        │ inspection_report_ │                    │
-│                        │ gen (JSON + MD)    │                    │
-│                        └────────────────────┘                    │
-│                                                                  │
-│  ┌──────────────┐   ┌──────────────┐                            │
-│  │ ekf_filter_  │   │ perception_  │                            │
-│  │ node         │   │ node         │                            │
-│  │ (fixed, runs,│   │ (lookup-table│                            │
-│  │  NOT yet     │   │  obstacle    │                            │
-│  │  consumed by │   │  proximity,  │                            │
-│  │  navigation) │   │  no real     │                            │
-│  │              │   │  vision yet) │                            │
-│  └──────────────┘   └──────────────┘                            │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    HAL["go2_hal_node<br/>C++ HAL, mock mode"]
+    SIM["sim_machine_emulator<br/>CAN telemetry per station"]
+    LIDAR["lidar_sim_node<br/>wall-aware /go2/scan<br/>fault-injectable"]
+    CHAMP["champ_bringup<br/>locomotion, its own EKFs<br/>publishes /odom/ground_truth"]
+    WATCHDOG["topic_health_monitor<br/>independent watchdog"]
+    BT["mission_bt_node<br/>NavigateToStation + InspectStation<br/>+ fault handler"]
+    REPORT["inspection_report_gen<br/>JSON + MD report"]
+    EKF["ekf_filter_node<br/>fixed and running<br/>not yet consumed by navigation"]
+    PERCEPTION["perception_node<br/>lookup-table obstacle proximity<br/>no real vision yet"]
+
+    HAL --> CHAMP
+    SIM -- can_telemetry --> BT
+    LIDAR -- /go2/scan --> WATCHDOG
+    CHAMP -- /odom/ground_truth --> BT
+    WATCHDOG -- FaultEvent --> BT
+    BT -- inspection_log --> REPORT
+```
 
 ### Node summary
 | Node | Language | Role |
 |---|---|---|
-| `go2_hal_node` | C++ | Hardware abstraction — mocks the real Go2 SDK's UDP interface |
+| `go2_hal_node` | C++ | Hardware abstraction, mocks the real Go2 SDK's UDP interface |
 | `champ_bringup` | (champ framework) | Quadruped locomotion/gait control; publishes `/odom/ground_truth` |
 | `sim_machine_emulator` | Python | Publishes real per-station CAN telemetry (2 Hz), seeded anomalies at station_2 and station_4 |
 | `lidar_sim_node` | Python | Ray-cast-aware `/go2/scan` at 10 Hz; supports fault injection via `/fault_inject/lidar` |
-| `topic_health_monitor` | Python | Independent watchdog; detects topic silence, publishes `FaultEvent` — runs as a separate process so a planner crash can't disable it |
+| `topic_health_monitor` | Python | Independent watchdog that detects topic silence and publishes `FaultEvent`. Runs as its own process so a planner crash can't disable it |
 | `mission_bt_node` | C++ | BehaviorTree.CPP v4 patrol logic. Navigates using a proportional controller on `/odom/ground_truth`. On `FaultEvent`, caps speed (0.30 → 0.15 m/s) and drops confidence (0.95 → 0.60) for all subsequent readings |
 | `inspection_report_gen` | Python | Aggregates results into JSON + Markdown reports |
-| `ekf_filter_node` | C++ (robot_localization) | Fuses `/go2/odom` + `/go2/imu`. Currently running correctly but **not yet consumed by navigation** — reserved for future Nav2 integration |
-| `perception_node` | Python | Lookup-table-based obstacle proximity detection against a fixed set of known coordinates — a placeholder for real sensor-based perception, not image classification |
-| `joy_teleop_node` | C++ | PS5 controller manual override — written, not yet wired into the launch file |
+| `ekf_filter_node` | C++ (robot_localization) | Fuses `/go2/odom` + `/go2/imu`. Runs correctly but isn't consumed by navigation yet, that's reserved for future Nav2 integration |
+| `perception_node` | Python | Lookup-table-based obstacle proximity detection against a fixed set of known coordinates. A placeholder for real sensor-based perception, not actual image classification |
+| `joy_teleop_node` | C++ | PS5 controller manual override, written but not yet wired into the launch file |
 
 ### Custom message types (`go2_interfaces`)
 - `CanFrame.msg` — per-station CAN telemetry (temp, vibration, error code)
@@ -86,9 +64,9 @@ The differentiating feature of this system is what happens when the LiDAR is kil
 3. `mission_bt_node` receives the event and sets a global `degraded_mode = true` flag
 4. Max velocity drops from 0.30 m/s to 0.15 m/s
 5. All subsequent `InspectionResult` messages carry `confidence = 0.60` instead of `0.95`
-6. The mission completes — it does not abort
+6. The mission completes. It does not abort.
 
-**Honest disclosure:** navigation in this version reads `/odom/ground_truth` directly (Gazebo's simulated ground-truth position), not a sensor-fused estimate. The LiDAR fault degrades speed and confidence, but it does not currently force a switch between two different navigation algorithms, because ground-truth odometry is used in both modes. The `ekf_filter_node` (robot_localization) is implemented, fixed, and runs cleanly, but its fused output isn't wired into navigation yet — that's the next milestone, alongside Nav2 integration. The confidence drop still faithfully reflects real degraded sensor coverage and is reported honestly in the final output.
+One thing worth being upfront about: navigation in this version reads `/odom/ground_truth` directly (Gazebo's simulated ground-truth position), not a sensor-fused estimate. The LiDAR fault degrades speed and confidence, but it doesn't currently force a switch between two different navigation algorithms, since ground-truth odometry is used in both modes. The `ekf_filter_node` (robot_localization) is implemented, fixed, and runs cleanly, but its fused output isn't wired into navigation yet. That's the next milestone, alongside Nav2 integration. The confidence drop still reflects real degraded sensor coverage and shows up honestly in the final report.
 
 ---
 
@@ -149,7 +127,7 @@ Confirmed via live test runs:
 - [x] Health monitor flags a killed topic within 2 seconds
 - [x] BT switches to degraded mode within the same tick as receiving `FaultEvent`
 - [x] Happy-path mission completes cleanly (5/5 stations, confidence 0.95, zero fault events)
-- [x] Fault-injection mission completes cleanly (mid-mission NORMAL → DEGRADED transition, correct report)
+- [x] Fault-injection mission completes cleanly (mid-mission NORMAL to DEGRADED transition, correct report)
 - [x] Station_2 and station_4 correctly flagged as anomalous; stations 1, 3, 5 clean
 - [x] Report Markdown and JSON generated correctly and are human-readable
 
@@ -160,7 +138,7 @@ Not yet verified:
 ---
 
 ## Code Reuse & Attribution
-This project synthesizes patterns from prior work:
+This project draws on patterns from prior work:
 
 | Prior project | What was reused |
 |---|---|
@@ -168,7 +146,7 @@ This project synthesizes patterns from prior work:
 | `can-fault-monitor` | CAN message structure and fault taxonomy |
 | `plc-kalman-ekf` | Structured telemetry pattern, EKF covariance tuning approach |
 
-Reusing and citing these is intentional: this project demonstrates system integration, not isolated component novelty.
+These are cited on purpose. This project is about integrating real systems well, not inventing new algorithms from scratch.
 
 ---
 
@@ -180,10 +158,10 @@ Reusing and citing these is intentional: this project demonstrates system integr
 ## What this project is NOT
 - Not a real offshore deployment (see HAL_DESIGN.md for the mock boundary)
 - Not a multi-robot system
-- Not using Isaac Sim (Gazebo Classic 11 only — confirmed design decision, chosen for VM compatibility)
+- Not using Isaac Sim. Gazebo Classic 11 only, picked because it runs reliably on VirtualBox
 - Not using real CAN/Modbus hardware (simulated topic publishing)
-- Not using real computer vision — `perception_node` is a lookup-table placeholder for a future real perception integration
-- Not using Nav2 yet — navigation is a simple proportional controller on ground-truth odometry; Nav2 + EKF-fused localization is the next milestone
+- Not using real computer vision. `perception_node` is a lookup-table placeholder for a future real perception integration
+- Not using Nav2 yet. Navigation is a simple proportional controller on ground-truth odometry; Nav2 and EKF-fused localization are the next milestone
 
 ---
 
