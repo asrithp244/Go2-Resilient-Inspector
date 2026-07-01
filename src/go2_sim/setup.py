@@ -19,6 +19,7 @@ setup(
     entry_points={
         "console_scripts": [
             "sim_machine_emulator = go2_sim.sim_machine_emulator:main",
+            "lidar_sim_node = go2_sim.lidar_sim_node:main",
         ],
     },
 )
