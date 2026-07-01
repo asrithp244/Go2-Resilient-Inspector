@@ -1,0 +1,15 @@
+# Large scan and video files
+*.zip
+*.mp4
+*.bag
+*.avi
+*.mov
+
+# Build artifacts
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.pyc
