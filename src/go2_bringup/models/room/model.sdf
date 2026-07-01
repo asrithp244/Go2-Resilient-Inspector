@@ -2,55 +2,80 @@
 <sdf version="1.6">
   <model name="room">
     <static>1</static>
-    <!-- No rotation at model level.
-         Box collisions are in world Z-up coordinates.
-         Only the visual mesh needs the Y-up to Z-up rotation. -->
+    <!-- Room: 4.4m wide (X) x 4.0m deep (Y) x 2.86m tall (Z)
+         Collision and visual use simple boxes - no mesh, safe on VirtualBox.
+         The Scaniverse OBJ is too heavy for VirtualBox OpenGL to render. -->
     <pose>0 0 0 0 0 0</pose>
     <link name="link">
 
-      <!-- Floor -->
-      <collision name="floor_collision">
+      <!-- ── Floor ─────────────────────────────────────────────────────── -->
+      <collision name="floor_col">
         <pose>0 0 0.025 0 0 0</pose>
-        <geometry>
-          <box><size>4.4 4.0 0.05</size></box>
-        </geometry>
+        <geometry><box><size>4.4 4.0 0.05</size></box></geometry>
       </collision>
+      <visual name="floor_vis">
+        <pose>0 0 0.025 0 0 0</pose>
+        <geometry><box><size>4.4 4.0 0.05</size></box></geometry>
+        <material>
+          <ambient>0.4 0.35 0.3 1</ambient>
+          <diffuse>0.4 0.35 0.3 1</diffuse>
+        </material>
+      </visual>
 
-      <!-- Walls: room is 4.4m wide (X) x 4.0m deep (Y) x 2.86m tall (Z) -->
-      <collision name="wall_north">
+      <!-- ── North wall ─────────────────────────────────────────────────── -->
+      <collision name="wall_north_col">
         <pose>0 2.0 1.43 0 0 0</pose>
-        <geometry>
-          <box><size>4.4 0.05 2.86</size></box>
-        </geometry>
+        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
       </collision>
-      <collision name="wall_south">
-        <pose>0 -2.0 1.43 0 0 0</pose>
-        <geometry>
-          <box><size>4.4 0.05 2.86</size></box>
-        </geometry>
-      </collision>
-      <collision name="wall_east">
-        <pose>2.2 0 1.43 0 0 0</pose>
-        <geometry>
-          <box><size>0.05 4.0 2.86</size></box>
-        </geometry>
-      </collision>
-      <collision name="wall_west">
-        <pose>-2.2 0 1.43 0 0 0</pose>
-        <geometry>
-          <box><size>0.05 4.0 2.86</size></box>
-        </geometry>
-      </collision>
+      <visual name="wall_north_vis">
+        <pose>0 2.0 1.43 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+        <material>
+          <ambient>0.8 0.8 0.75 1</ambient>
+          <diffuse>0.8 0.8 0.75 1</diffuse>
+        </material>
+      </visual>
 
-      <!-- Visual mesh: rotated +90deg around X to convert Scaniverse Y-up to Gazebo Z-up -->
-      <visual name="visual">
-        <pose>0 0 0 1.5708 0 0</pose>
-        <geometry>
-          <mesh>
-            <uri>model://room/meshes/room.obj</uri>
-            <scale>1 1 1</scale>
-          </mesh>
-        </geometry>
+      <!-- ── South wall ─────────────────────────────────────────────────── -->
+      <collision name="wall_south_col">
+        <pose>0 -2.0 1.43 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+      </collision>
+      <visual name="wall_south_vis">
+        <pose>0 -2.0 1.43 0 0 0</pose>
+        <geometry><box><size>4.4 0.05 2.86</size></box></geometry>
+        <material>
+          <ambient>0.8 0.8 0.75 1</ambient>
+          <diffuse>0.8 0.8 0.75 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- ── East wall ──────────────────────────────────────────────────── -->
+      <collision name="wall_east_col">
+        <pose>2.2 0 1.43 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+      </collision>
+      <visual name="wall_east_vis">
+        <pose>2.2 0 1.43 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+        <material>
+          <ambient>0.8 0.8 0.75 1</ambient>
+          <diffuse>0.8 0.8 0.75 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- ── West wall ──────────────────────────────────────────────────── -->
+      <collision name="wall_west_col">
+        <pose>-2.2 0 1.43 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+      </collision>
+      <visual name="wall_west_vis">
+        <pose>-2.2 0 1.43 0 0 0</pose>
+        <geometry><box><size>0.05 4.0 2.86</size></box></geometry>
+        <material>
+          <ambient>0.8 0.8 0.75 1</ambient>
+          <diffuse>0.8 0.8 0.75 1</diffuse>
+        </material>
       </visual>
 
     </link>
